@@ -1,10 +1,12 @@
 "use client";
 import { ChangeEvent, FormEvent, useState } from "react";
 import QualificationInfo from "../../qualificationTableForm/page";
+import PaymentSectionWrapper from "../../PaymentSection/page";
+
 
 export default function UnderGraduateForm() {
     const [formData, setFormData] = useState({});
-
+    const [transactionId, setTransactionId] = useState("");
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, files } = e.target as HTMLInputElement;
@@ -23,9 +25,7 @@ export default function UnderGraduateForm() {
 
     return (
         <div className="max-w-10/12 mx-auto p-6  ">
-            <h2 className="text-2xl font-bold text-center text-white mb-6 p-4 bg-green-700">
-                Online Admission
-            </h2>
+
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* ========== ACADEMIC INFORMATION ========== */}
                 <section>
@@ -372,10 +372,39 @@ export default function UnderGraduateForm() {
                     </div>
                 </section>
 
+                <section>
+                    <h3 className="bg-sky-500 text-white p-2 rounded-md text-lg font-semibold">
+                        Payment
+                    </h3>
+
+                    <div className="flex flex-col md:flex-row gap-4 w-full mt-4">
+
+
+
+
+                        <div className="flex-1">
+                            <label className="block font-medium mb-1">Transaction ID</label>
+                            <input
+                                type="text"
+                                readOnly
+                                value={transactionId ? transactionId : ""}
+                                placeholder="Payment pending..."
+                                className="w-full border rounded p-2 bg-gray-100"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <PaymentSectionWrapper setTransactionId={setTransactionId} />
+                        </div>
+                    </div>
+
+
+                    <input type="hidden" name="transactionId" value={transactionId} />
+                </section>
+
                 <div className="flex justify-center mt-6">
                     <button
                         type="submit"
-                        className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-2 rounded-lg font-semibold"
+                        className="bg-green-500 hover:bg-green-600 hover:cursor-pointer text-white px-6 py-2 rounded-lg font-semibold"
                     >
                         Submit
                     </button>
