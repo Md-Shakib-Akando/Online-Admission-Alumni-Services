@@ -65,7 +65,7 @@ const CheckoutForm = ({ setTransactionId }: PaymentSectionProps) => {
                 setTransaction(transactionId);
                 setTransactionId(transactionId);
                 alert(`✅ Payment Successful! Transaction ID: ${transactionId}`);
-                window.location.href = `/invoice/${transactionId}`;
+
             }
         } catch (err) {
             console.error(err);
