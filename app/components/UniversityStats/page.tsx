@@ -32,7 +32,7 @@ const UniversityStats = () => {
 
                 </div>
 
-                <div className='grid grid-cols-1 md:grid-cols-4 gap-6 px-6 md:px-0' ref={ref}>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 md:px-0' ref={ref}>
                     {stats.map((item, idx) => (
                         <div key={idx} className=' border border-gray-200 rounded-2xl shadow-md flex flex-col items-center p-8'>
                             {item.icon}

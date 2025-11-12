@@ -10,6 +10,8 @@ import {
     useStripe,
     useElements,
 } from "@stripe/react-stripe-js";
+import { useAuth } from "../Auth/AuthProvider/page";
+
 
 interface PaymentSectionProps {
     setTransactionId: (id: string) => void;
@@ -20,39 +22,38 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 const CheckoutForm = ({ setTransactionId }: PaymentSectionProps) => {
     const stripe = useStripe();
     const elements = useElements();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [amount, setAmount] = useState<string>(""); // ✅ fixed
-    const [transaction, setTransaction] = useState("");
+    const [amount, setAmount] = useState<string>("");
+    const [transaction, setTransaction] = useState<string>("");
 
     const handlePayment = async () => {
         if (!stripe || !elements) return;
+        if (!user?.email) return alert("User not logged in");
 
         const numericAmount = Number(amount);
-
-        if (!numericAmount || numericAmount <= 0) {
-            alert("❌ Please enter a valid amount.");
-            return;
-        }
+        if (!numericAmount || numericAmount <= 0) return alert("Enter a valid amount");
 
         setLoading(true);
 
         try {
-            // 1. Create PaymentIntent
+            // 1️⃣ Create PaymentIntent
             const res = await fetch("/api/stripe/payment_intent", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amount: Math.round(numericAmount * 100) }), // cents
+                body: JSON.stringify({ amount: numericAmount, email: user.email }),
             });
+
             const data = await res.json();
             const clientSecret = data.clientSecret;
 
             if (!clientSecret) {
-                alert("Payment initiation failed.");
+                alert("Payment initiation failed");
                 setLoading(false);
                 return;
             }
 
-            // 2. Confirm Card Payment
+            // 2️⃣ Confirm Card Payment
             const cardNumber = elements.getElement(CardNumberElement);
             const result = await stripe.confirmCardPayment(clientSecret, {
                 payment_method: { card: cardNumber! },
@@ -65,7 +66,6 @@ const CheckoutForm = ({ setTransactionId }: PaymentSectionProps) => {
                 setTransaction(transactionId);
                 setTransactionId(transactionId);
                 alert(`✅ Payment Successful! Transaction ID: ${transactionId}`);
-
             }
         } catch (err) {
             console.error(err);
@@ -77,7 +77,6 @@ const CheckoutForm = ({ setTransactionId }: PaymentSectionProps) => {
 
     return (
         <div className="flex flex-col gap-4 bg-white rounded shadow-md p-4">
-            {/* Amount Input */}
             <div>
                 <label className="block font-medium mb-1">Amount (USD)</label>
                 <input
@@ -90,7 +89,6 @@ const CheckoutForm = ({ setTransactionId }: PaymentSectionProps) => {
                 />
             </div>
 
-            {/* Card Number */}
             <div>
                 <label className="block font-medium mb-1">Card Number</label>
                 <div className="border rounded p-2">
@@ -98,28 +96,22 @@ const CheckoutForm = ({ setTransactionId }: PaymentSectionProps) => {
                 </div>
             </div>
 
-            {/* Expiry + CVC */}
             <div className="flex gap-2">
                 <div className="flex-1">
                     <label className="block font-medium mb-1">Expiry</label>
-                    <div className="border rounded p-2">
-                        <CardExpiryElement />
-                    </div>
+                    <div className="border rounded p-2"><CardExpiryElement /></div>
                 </div>
                 <div className="flex-1">
                     <label className="block font-medium mb-1">CVC</label>
-                    <div className="border rounded p-2">
-                        <CardCvcElement />
-                    </div>
+                    <div className="border rounded p-2"><CardCvcElement /></div>
                 </div>
             </div>
 
-            {/* Pay Button */}
             <button
                 type="button"
                 onClick={handlePayment}
                 disabled={!stripe || loading}
-                className="bg-sky-500 hover:bg-sky-600 hover:cursor-pointer text-white px-6 py-2 rounded-lg mt-2"
+                className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-2 rounded-lg mt-2"
             >
                 {loading ? "Processing..." : "Pay"}
             </button>

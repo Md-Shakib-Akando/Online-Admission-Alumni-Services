@@ -1,117 +1,180 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaFileAlt, FaMoneyCheckAlt } from "react-icons/fa";
+
+import { useAuth } from "../components/Auth/AuthProvider/page";
+
+
+type User = {
+    id: number;
+    name: string;
+    email: string;
+    role: "applicant" | "alumni";
+    student_id?: string | null;
+    photo_url?: string | null;
+};
 
 type Service = {
     id: number;
     title: string;
     description: string;
-    icon: React.ReactElement;
+
 };
 
 export default function AlumniServicePage() {
     const router = useRouter();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedService, setSelectedService] = useState<Service | null>(null);
-    const [clearanceStatus, setClearanceStatus] = useState<boolean | null>(null);
+    const { user, loading } = useAuth();
+
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [showWarning, setShowWarning] = useState(false);
 
     const services: Service[] = [
         {
             id: 1,
             title: "Certificate Request",
-            description: "Apply for your alumni certificate",
-            icon: <FaFileAlt size={36} className="text-sky-500 mx-auto mb-4" />,
+            description:
+                "Find out how you can order copies of degree certificates and graduate transcripts.",
+
         },
         {
             id: 2,
-            title: "Clearance / Payment",
-            description: "Check your clearance status and make pending payments",
-            icon: <FaMoneyCheckAlt size={36} className="text-green-500 mx-auto mb-4" />,
+            title: "Career Support",
+            description:
+                "Explore the services available to you as a graduate from our Careers and Employability teams.",
+
+        },
+        {
+            id: 3,
+            title: "Accommodation",
+            description:
+                "Find out how alumni can stay in campus accommodation at a discounted rate.",
+
+        },
+        {
+            id: 4,
+            title: "Sports Membership",
+            description:
+                "Access fantastic sports facilities with an alumni sports membership for a small fee.",
+
+        },
+        {
+            id: 5,
+            title: "Library Access",
+            description:
+                "Get library membership with access to our eight libraries and digital resources.",
+
+        },
+        {
+            id: 6,
+            title: "Health & Wellness",
+            description:
+                "Stay connected with health and wellness programs designed for alumni.",
+
         },
     ];
 
-    // Simulated clearance fetch function (replace with real API)
-    const fetchClearanceStatus = async (): Promise<boolean> => {
-        // simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        return true; // change to false to simulate pending clearance
-    };
+    useEffect(() => {
+        if (!user?.email) return;
+        const fetchUsers = async () => {
+            try {
+                const res = await fetch("/api/users");
+                if (!res.ok) throw new Error("Failed to fetch users");
 
-    const handleServiceClick = async (service: Service) => {
-        setSelectedService(service);
+                const data = await res.json();
+                if (data.success && data.users.length > 0) {
+                    const foundUser = data.users.find(
+                        (u: User) => u.email === user.email
+                    );
+                    if (foundUser) setCurrentUser(foundUser);
+                    else console.error("Logged-in user not found in DB");
+                } else {
+                    console.error("No users found in DB");
+                }
+            } catch (err) {
+                console.error("Error fetching users:", err);
+            }
+        };
 
-        if (service.title === "Certificate Request") {
-            // fetch clearance status first
-            const status = await fetchClearanceStatus();
-            setClearanceStatus(status);
-            setIsModalOpen(true);
+        fetchUsers();
+    }, [user?.email]);
+
+    const handleServiceClick = (service: Service) => {
+        if (!currentUser) return;
+
+        if (service.id === 1) {
+            if (currentUser.role === "alumni") {
+                router.push("/alumni/certificate-apply");
+            } else {
+                setShowWarning(true);
+            }
         } else {
-            router.push("/alumni/payment");
+            alert(`You clicked on ${service.title}`);
         }
     };
 
-    const handleModalYes = () => {
-        setIsModalOpen(false);
-        if (clearanceStatus) {
-            router.push("/alumni/certificate-apply"); // go to your apply page
-        } else {
-            router.push("/alumni/payment"); // go to payment page
-        }
-    };
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <p>Loading...</p>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <p>Please login to access Alumni Services.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-7xl mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-6 text-sky-600">Alumni Services</h1>
-
-            <div className="bg-sky-50 border-l-4 border-sky-500 p-4 mb-8 rounded-md">
-                <p className="text-gray-700">
-                    Welcome to the alumni services portal. Before applying for a certificate,
-                    please ensure all clearance payments are completed. Click on a service below
-                    to proceed.
-                </p>
-            </div>
+            <h1 className="text-3xl font-bold mb-8 text-sky-600 text-center">
+                Alumni Services
+            </h1>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {services.map((service) => (
                     <div
                         key={service.id}
-                        className="p-6 bg-white rounded-lg shadow hover:shadow-lg cursor-pointer transition duration-300"
+                        className="bg-white rounded-lg shadow hover:shadow-lg transition duration-300 cursor-pointer overflow-hidden"
                         onClick={() => handleServiceClick(service)}
                     >
-                        <div className="text-center">
-                            {service.icon}
-                            <h3 className="font-semibold text-lg mb-2">{service.title}</h3>
-                            <p className="text-gray-500">{service.description}</p>
+
+
+                        <div className="p-5 flex flex-col justify-between h-44">
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2 text-gray-800">
+                                    {service.title}
+                                </h3>
+                                <p className="text-gray-500">{service.description}</p>
+                            </div>
+                            <button className="text-white bg-sky-600 hover:bg-sky-700 px-4 py-2 rounded-md w-fit mt-4">
+                                Find out more
+                            </button>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {isModalOpen && selectedService && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-                    <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-                        <h2 className="text-xl font-semibold mb-4">Certificate Request</h2>
-                        <p className="mb-6">
-                            {clearanceStatus
-                                ? "✅ Your clearance is complete. Click YES to proceed to the application form."
-                                : "⚠️ Clearance is pending. Click YES to go to the payment page first."}
+            {showWarning && (
+                <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-md p-6 max-w-sm mx-auto shadow-lg">
+                        <h2 className="text-xl font-semibold mb-4 text-red-600">
+                            Access Denied
+                        </h2>
+                        <p className="mb-6 text-gray-700">
+                            Only alumni users can request certificates. Please contact admin
+                            if you believe this is an error.
                         </p>
-                        <div className="flex justify-end gap-4">
-                            <button
-                                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
-                                onClick={() => setIsModalOpen(false)}
-                            >
-                                NO
-                            </button>
-                            <button
-                                className="px-4 py-2 rounded bg-sky-500 text-white hover:bg-sky-600"
-                                onClick={handleModalYes}
-                            >
-                                YES
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => setShowWarning(false)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
             )}

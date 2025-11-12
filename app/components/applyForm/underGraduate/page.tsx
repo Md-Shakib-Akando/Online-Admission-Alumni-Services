@@ -1,11 +1,11 @@
 "use client";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import QualificationInfo from "../../qualificationTableForm/page";
 import PaymentSectionWrapper from "../../PaymentSection/page";
 
-
 type DepartmentMap = {
-    [department: string]: string[]; // department → programs
+    [department: string]: string[];
 };
 
 type AcademicData = {
@@ -13,49 +13,71 @@ type AcademicData = {
         departments: DepartmentMap;
     };
 };
-type DivisionApiResponse = {
-    count: number;
-    data: Division[];
-    success: boolean;
-    message: string;
-};
-
-type DistrictApiResponse = {
-    success: boolean;
-    data: District[];
-    message: string;
-    count: number;
-    timestamp: string;
-};
-type UpazilaApiResponse = {
-    success: boolean;
-    data: Upazila[];
-    message: string;
-    count: number;
-    timestamp: string;
-};
-
-
-
 
 type Division = { id: number; name: string };
 type District = { id: number; name: string; division_id: number };
 type Upazila = { id: number; name: string; district_id: number };
 
+type DivisionApiResponse = { count: number; data: Division[]; success: boolean; message: string };
+type DistrictApiResponse = { success: boolean; data: District[]; message: string; count: number; timestamp: string };
+type UpazilaApiResponse = { success: boolean; data: Upazila[]; message: string; count: number; timestamp: string };
+
+interface FormDataType {
+    studentName?: string;
+    studentPhone?: string;
+    studentEmail?: string;
+    nid?: string;
+    dob?: string;
+    birthPlace?: string;
+    admissionDate?: string;
+    blood?: string;
+    religion?: string;
+    gender?: string;
+    maritalStatus?: string;
+    nationality?: string;
+    studentPicture?: File;
+    studentSignature?: File;
+    fatherName?: string;
+    fatherPhone?: string;
+    motherName?: string;
+    motherPhone?: string;
+    village?: string;
+    postOffice?: string;
+    postalCode?: string;
+    union?: string;
+    country?: string;
+    nidOrBirth?: File;
+    fatherNid?: File;
+    ATC?: File;
+    otherDocsFile?: File;
+    [key: string]: string | File | undefined;
+}
+interface FilesData {
+    studentPicture?: string;
+    studentSignature?: string;
+    nidOrBirth?: string;
+    fatherNid?: string;
+    ATC?: string;
+    otherDocsFile?: string;
+}
+
+
 export default function UnderGraduateForm() {
-    const [formData, setFormData] = useState({});
+    const [formData, setFormData] = useState<FormDataType>({});
+
     const [transactionId, setTransactionId] = useState("");
     const [faculty, setFaculty] = useState<keyof AcademicData | "">("");
     const [department, setDepartment] = useState<keyof DepartmentMap | "">("");
     const [program, setProgram] = useState<string>("");
 
-    const [divisions, setDivisions] = useState<DivisionApiResponse | null>(null);
+    const [divisions, setDivisions] = useState<Division[]>([]);
     const [districts, setDistricts] = useState<District[]>([]);
     const [upazilas, setUpazilas] = useState<Upazila[]>([]);
 
     const [selectedDivision, setSelectedDivision] = useState<number | "">("");
     const [selectedDistrict, setSelectedDistrict] = useState<number | "">("");
     const [selectedUpazila, setSelectedUpazila] = useState<number | "">("");
+    const formRef = useRef<HTMLFormElement>(null);
     const academicData: AcademicData = {
         "Science & Engineering": {
             departments: {
@@ -63,13 +85,11 @@ export default function UnderGraduateForm() {
                 "Electrical & Electronic Engineering": ["BSc in EEE (HSC)", "BSc in EEE (Diploma)"],
                 "Civil & Engineering": ["BSc in Civil (HSC)", "BSc in Civil (Diploma)"],
                 "Public Health": ["MPH"],
-
             },
         },
         "Business Studies": {
             departments: {
-                BusinessAdministration: ["BBA ", "MBA (1Year)", "MBA (2Year)", "EMBA"],
-
+                BusinessAdministration: ["BBA", "MBA (1Year)", "MBA (2Year)", "EMBA"],
             },
         },
         "Humanities & Social Science": {
@@ -83,47 +103,42 @@ export default function UnderGraduateForm() {
         "Law": {
             departments: {
                 Law: ["LLB (HSC)", "LLM (1Year)", "LLM (2Year)"],
-
             },
         },
     };
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, files } = e.target as HTMLInputElement;
-        setFormData({
-            ...formData,
-            [name]: files ? files[0] : value,
-        });
+        if (files && files.length > 0) {
+            setFormData({ ...formData, [name]: files[0] });
+        } else {
+            setFormData({ ...formData, [name]: value });
+        }
     };
 
-    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        alert("✅ Form submitted successfully!");
-        const form = e.currentTarget as HTMLFormElement;
-        form.reset();
-    };
-    const handleFacultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedFaculty = e.target.value as keyof AcademicData; // important cast
-        setFaculty(selectedFaculty);
+    const handleFacultyChange = (e: ChangeEvent<HTMLSelectElement>) => {
+        const selected = e.target.value as keyof AcademicData;
+        setFaculty(selected);
         setDepartment("");
         setProgram("");
     };
 
-    const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedDepartment = e.target.value;
-        setDepartment(selectedDepartment);
+    const handleDepartmentChange = (e: ChangeEvent<HTMLSelectElement>) => {
+        const selected = e.target.value;
+        setDepartment(selected);
         setProgram("");
     };
 
-    const handleProgramChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleProgramChange = (e: ChangeEvent<HTMLSelectElement>) => {
         setProgram(e.target.value);
     };
+
     useEffect(() => {
         const fetchDivisions = async () => {
             try {
                 const res = await fetch("https://bdapis.vercel.app/geo/v2.0/divisions");
                 const data: DivisionApiResponse = await res.json();
-                setDivisions(data);
+                setDivisions(data.data);
             } catch (err) {
                 console.error(err);
             }
@@ -131,24 +146,19 @@ export default function UnderGraduateForm() {
         fetchDivisions();
     }, []);
 
-    // Fetch districts whenever a division is selected
-    // Fetch districts when a division is selected
-
     useEffect(() => {
-        if (!selectedDivision) {
-            setDistricts([]);
-            setSelectedDistrict("");
-            setUpazilas([]);
-            setSelectedUpazila("");
-            return;
-        }
-
         const fetchDistricts = async () => {
+            if (!selectedDivision) {
+                setDistricts([]);
+                setSelectedDistrict("");
+                setUpazilas([]);
+                setSelectedUpazila("");
+                return;
+            }
             try {
                 const res = await fetch(`https://bdapis.vercel.app/geo/v2.0/districts/${selectedDivision}`);
-                if (!res.ok) throw new Error("Failed to fetch districts");
                 const data: DistrictApiResponse = await res.json();
-                setDistricts(data.data); // <-- only the array
+                setDistricts(data.data);
                 setSelectedDistrict("");
                 setUpazilas([]);
                 setSelectedUpazila("");
@@ -159,20 +169,18 @@ export default function UnderGraduateForm() {
         fetchDistricts();
     }, [selectedDivision]);
 
-    // Fetch upazilas when a district is selected
-    useEffect(() => {
-        if (!selectedDistrict) {
-            setUpazilas([]);
-            setSelectedUpazila("");
-            return;
-        }
 
+    useEffect(() => {
         const fetchUpazilas = async () => {
+            if (!selectedDistrict) {
+                setUpazilas([]);
+                setSelectedUpazila("");
+                return;
+            }
             try {
                 const res = await fetch(`https://bdapis.vercel.app/geo/v2.0/upazilas/${selectedDistrict}`);
-                if (!res.ok) throw new Error("Failed to fetch upazilas");
                 const data: UpazilaApiResponse = await res.json();
-                setUpazilas(data.data); // <-- only the array
+                setUpazilas(data.data);
                 setSelectedUpazila("");
             } catch (err) {
                 console.error(err);
@@ -180,6 +188,70 @@ export default function UnderGraduateForm() {
         };
         fetchUpazilas();
     }, [selectedDistrict]);
+
+
+    // Convert file to base64
+    const fileToBase64 = (file: File) =>
+        new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve((reader.result as string).split(",")[1]);
+            reader.onerror = (err) => reject(err);
+        });
+
+    // In handleSubmit function
+
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        try {
+            const files: FilesData = {};
+
+            // Convert files to Base64 only if they exist
+            if (formData.studentPicture) files.studentPicture = await fileToBase64(formData.studentPicture);
+            if (formData.studentSignature) files.studentSignature = await fileToBase64(formData.studentSignature);
+            if (formData.nidOrBirth) files.nidOrBirth = await fileToBase64(formData.nidOrBirth);
+            if (formData.fatherNid) files.fatherNid = await fileToBase64(formData.fatherNid);
+            if (formData.ATC) files.ATC = await fileToBase64(formData.ATC);
+            if (formData.otherDocsFile) files.otherDocsFile = await fileToBase64(formData.otherDocsFile);
+
+            const response = await fetch("/api/undergraduate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...formData,
+                    faculty,
+                    department,
+                    program,
+                    selectedDivision,
+                    selectedDistrict,
+                    selectedUpazila,
+                    transactionId,
+                    files,
+                }),
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                alert("✅ Form submitted successfully!");
+                formRef.current?.reset();
+                setFormData({});
+                setFaculty("");
+                setDepartment("");
+                setProgram("");
+                setSelectedDivision("");
+                setSelectedDistrict("");
+                setSelectedUpazila("");
+                setTransactionId("");
+            } else {
+                alert("❌ Submission failed: " + res.message);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("❌ Submission failed! Check console for details.");
+        }
+    };
+
+
 
 
 
@@ -512,11 +584,12 @@ export default function UnderGraduateForm() {
                                 required
                             >
                                 <option value="">--- Select ---</option>
-                                {divisions?.data.map((d) => (
+                                {divisions.map((d) => (
                                     <option key={d.id} value={d.id}>
                                         {d.name}
                                     </option>
                                 ))}
+
                             </select>
                         </div>
 
@@ -603,11 +676,12 @@ export default function UnderGraduateForm() {
                             <label className="block text-sm font-medium">Other Documents*</label>
                             <input
                                 type="file"
-                                name="union"
+                                name="otherDocsFile"
                                 onChange={handleChange}
                                 className="w-full border rounded p-2"
                                 required
                             />
+
                         </div>
 
 
